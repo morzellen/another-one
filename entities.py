@@ -4,43 +4,92 @@ from decimal import Decimal
 from typing import List, Set
 from uuid import UUID
 from enums import (
+    AuthProviderEnum,
     BookingStatusesEnum,
+    CommunicationChannelsTypesEnum,
+    FileFormatEnum,
+    FileTypesEnum,
     PaymentMethodsEnum,
     PaymentStatusesEnum,
+    ProjectStatusesEnum,
     ServicesTypesEnum,
+    ServicesTypesForBookingEnum,
+    SubProjectStatusesEnum,
+    TaskStatusesEnum,
     UserRoleEnum,
     UserStatusesEnum,
 )
-from value_objects import ContactInfo, DesignStyle, EmployeeInfo, PersonalInfo
+from value_objects import ContactInfo, EmployeeInfo, PersonalInfo
 
 
 @dataclass
 class Booking:
+    """
+    This class represents a studio booking in the recording studio management platform.
+    Bookings are used to schedule services for clients, such as mixing,
+    mastering, recording and etc.
+    It can be created by clients and confirmed by studio owners.
+    It can be linked to an existing project and its subprojects, or not linked at all.
+    Client can reschedule the booking by himself, but only if it is confirmed by
+    the owner/the person responsible for it. Otherwise, he may return to the time that
+    was agreed upon.
+    """
+
     id: UUID
     studio_id: UUID
     client_id: UUID
-    service_type: ServicesTypesEnum
+    service_type: ServicesTypesForBookingEnum
     start_time: datetime
     end_time: datetime
-    status: BookingStatusesEnum = BookingStatusesEnum.CREATED
+    assigned_employee_id: UUID  # specialist id who is assigned to this booking
+
+    created_at: datetime
+    updated_at: datetime | None = None
+
+    confirmed_at: datetime | None = None
+    cancelled_at: datetime | None = None
+    completed_at: datetime | None = None
+    rescheduled_at: datetime | None = None
+
     project_id: UUID | None = None  # can be not linked to a project
+
+    status: BookingStatusesEnum = BookingStatusesEnum.CREATED
     payment_status: PaymentStatusesEnum = PaymentStatusesEnum.UNPAID
-    payment_method: PaymentMethodsEnum | None = None
-
-
-@dataclass
-class Studio:
-    id: UUID
-    name: str
+    payment_method: PaymentMethodsEnum = PaymentMethodsEnum.CASH
 
 
 @dataclass
 class DiscountPolicy:
+    """
+    This class represents a discount policy in the recording studio management platform.
+    This will be used to apply discounts to clients based on their track statistics.
+    It's configured by the studio owner.
+    """
+
     studio_id: UUID
-    client_status: UserStatusesEnum = UserStatusesEnum.VIP
+    discount_percent: Decimal  # 0.1 = 10%
+    required_status: UserStatusesEnum | None
     min_tracks: int | None
     period_days: int | None
-    discount_percent: Decimal  # 0.1 = 10%
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+@dataclass
+class Studio:
+    """
+    This class represents a recording studio in the recording studio management platform.
+    Studios are the central locations where clients can create projects, services and etc.
+    Studios are managed by owners and have a unique identifier (UUID).
+    It's the main part of the SaaS system, where everything happens.
+    """
+
+    id: UUID
+    owner_id: UUID
+    name: str
+    discount_policy: DiscountPolicy
+    created_at: datetime
+    updated_at: datetime | None = None
 
 
 @dataclass
@@ -60,13 +109,13 @@ class ClientProfile:
     5. Delete file from project, which was uploaded by him
     7. Cancel booking
     8. Reschedule booking
-    9. Set up his personal profile (base personal info like name, email, phone, avatar, etc)
+    9. Set up his personal info (base personal info like name, email, phone, avatar, etc)
     10. Add comment to project (it means what client wants to see in track, cover or etc)
-    11. Choose services to project (promotion, create cover design, etc)
-    12. Add sound/image uses AI to project (what client wants to see/hear in track or cover)
+    11. Add services to project like promotion, create cover design, etc. It will be automatically created as a subproject.
+    12. Upload sound/image to subproject (what client wants to see/hear in track or cover)
     """
 
-    discount_tier: Decimal = Decimal("0.0")
+    user_id: UUID
 
 
 @dataclass
@@ -86,12 +135,13 @@ class EngineerProfile:
     3. Upload file to subproject (mp3, wav)
     4. Delete file from subproject, which was uploaded by him
     5. Set status subproject is completed if all tasks are completed
-    6. Set up his personal profile (base personal info, price for services, etc)
+    6. Set up his personal info (base personal info, price for services, etc)
     7. Add task to subproject
     8. Change task status in subproject
     9. Notificate/send message to client about whatever
     """
 
+    user_id: UUID
     employee_info: EmployeeInfo
 
 
@@ -112,14 +162,15 @@ class DesignerProfile:
     3. Upload file to subproject (jpg, png, mp4, avi)
     4. Delete file from subproject, which was uploaded by him
     5. Set status subproject is completed if all tasks are completed
-    6. Set up his personal profile (base personal info, price for services, etc)
+    6. Set up his personal info (base personal info, price for services, etc)
     7. Add task to subproject
     8. Change task status in subproject
     9. Notificate/send message to client about whatever
     """
 
+    user_id: UUID
     employee_info: EmployeeInfo
-    design_styles: List[DesignStyle] = field(default_factory=list)
+    design_style_ids: List[UUID] = field(default_factory=list)
 
 
 @dataclass
@@ -147,6 +198,15 @@ class OwnerProfile:
     ...
     """
 
+    user_id: UUID
+
+
+@dataclass
+class AuthIdentity:
+    user_id: UUID
+    provider: AuthProviderEnum
+    provider_user_id: str
+
 
 @dataclass
 class User:
@@ -156,39 +216,145 @@ class User:
     personal_info: PersonalInfo
     status: UserStatusesEnum
     roles: Set[UserRoleEnum]
-    # private fields for every profile
-    _client_profile: ClientProfile | None = None
-    _engineer_profile: EngineerProfile | None = None
-    _designer_profile: DesignerProfile | None = None
-    _owner_profile: OwnerProfile | None = None
 
-    def __post_init__(self):
-        # if we have a role, we must have a profile
-        if UserRoleEnum.CLIENT in self.roles and self._client_profile is None:
-            raise ValueError("User with CLIENT role must have a ClientProfile")
-        if UserRoleEnum.ENGINEER in self.roles and self._engineer_profile is None:
-            raise ValueError("User with ENGINEER role must have an EngineerProfile")
-        if UserRoleEnum.DESIGNER in self.roles and self._designer_profile is None:
-            raise ValueError("User with DESIGNER role must have a DesignerProfile")
-        if UserRoleEnum.OWNER in self.roles and self._owner_profile is None:
-            raise ValueError("User with OWNER role must have an OwnerProfile")
+    created_at: datetime
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
 
-    def get_client_profile(self) -> ClientProfile | None:
-        if UserRoleEnum.CLIENT not in self.roles:
-            return None
-        return self._client_profile
+    created_from_oauth: bool = False
+    has_custom_profile: bool = False  # did the user edit the profile manually?
 
-    def get_engineer_profile(self) -> EngineerProfile | None:
-        if UserRoleEnum.ENGINEER not in self.roles:
-            return None
-        return self._engineer_profile
 
-    def get_designer_profile(self) -> DesignerProfile | None:
-        if UserRoleEnum.DESIGNER not in self.roles:
-            return None
-        return self._designer_profile
+@dataclass()
+class CommunicationChannel:
+    """
+    This class represents the low level priority communication methods.
+    value is id of social profile
+    """
 
-    def get_owner_profile(self) -> OwnerProfile | None:
-        if UserRoleEnum.OWNER not in self.roles:
-            return None
-        return self._owner_profile
+    id: UUID
+    user_id: UUID
+    type: CommunicationChannelsTypesEnum
+    created_at: datetime
+    value: str | None = None
+    username: str | None = None
+
+
+@dataclass
+class DesignStyle:
+    """
+    This class represents the design style, which is part of designer profile.
+    It can be a name of style like minimalistic, modern, etc.
+    """
+
+    id: UUID
+    studio_id: UUID
+    name: str
+    created_at: datetime
+
+
+@dataclass
+class Task:
+    """
+    This class represents the task, wich is part of subproject and the employee
+    assigns to himself.
+    """
+
+    id: UUID
+    subproject_id: UUID
+    title: str
+    created_by: UUID  # engineer/designer
+    created_at: datetime
+    updated_at: datetime | None = None
+
+    description: str | None = None
+    status: TaskStatusesEnum = TaskStatusesEnum.NEW
+    completed_at: datetime | None = None
+
+
+@dataclass
+class File:
+    """
+    This class represents the file, which is part of project.
+    It can be audio, video or image and can be uploaded by employee or client.
+    """
+
+    id: UUID
+    project_id: UUID
+    subproject_id: UUID | None
+    uploaded_by: UUID
+    uploaded_at: datetime
+
+    file_type: FileTypesEnum
+    format: FileFormatEnum
+    url: str
+
+    archived_at: datetime | None = None
+
+
+@dataclass
+class SubProject:
+    """
+    This class represents the agregated root of tasks.
+    """
+
+    id: UUID
+    studio_id: UUID
+    project_id: UUID
+    created_by: (
+        UUID  # who created subproject and working with it (only emplyoee can do that)
+    )
+    updated_at: datetime
+    service_type: ServicesTypesEnum
+    booking_id: UUID | None = None
+
+    status: SubProjectStatusesEnum = SubProjectStatusesEnum.ASSIGNED
+    tasks_ids: List[UUID] = field(default_factory=list)
+    files_ids: List[UUID] = field(default_factory=list)
+
+    completed_at: datetime | None = None
+
+
+@dataclass
+class Comment:
+    """
+    This class represents the comment to project. It can be left by owner or client.
+    We can consider this a note that a client or studio owner creates, and those
+    who work on the project will see it.
+    """
+
+    id: UUID
+    studio_id: UUID
+    project_id: UUID
+    left_by: UUID  # it can be owner or client
+    text: str
+    created_at: datetime
+    updated_at: datetime | None = None
+    deleted_at: datetime | None = None
+
+
+@dataclass
+class Project:
+    """
+    This class represents the agregated root of subprojects.
+    The project is a kind of work space with studio services, in which the client
+    monitors the changes made by the employees.
+    He can also create this project for the future, or book time for an existing one.
+    Also project can be archived when it is completed and no longer active.
+    Project can be created by client or studio owner.
+    """
+
+    id: UUID
+    studio_id: UUID
+    client_id: UUID
+    created_by: UUID
+    created_at: datetime
+    updated_at: datetime | None = None
+
+    status: ProjectStatusesEnum = ProjectStatusesEnum.DRAFT
+    subprojects_ids: List[UUID] = field(default_factory=list)
+    comments_ids: List[UUID] = field(default_factory=list)
+    files_ids: List[UUID] = field(default_factory=list)
+
+    completed_at: datetime | None = None
+    archived_at: datetime | None = None

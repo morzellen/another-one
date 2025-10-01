@@ -104,32 +104,16 @@ class FileTypesEnum(Enum):
     AUDIO: str = "audio"
 
 
-class AudioFormatsEnum(Enum):
+class FileFormatEnum(Enum):
     """
-    This class represents the supported audio file formats in the system.
-    These formats are used for uploading and downloading audio files in projects.
+    This class represents the supported file formats in the system.
+    These formats are used for uploading and downloading files in projects.
     """
 
     MP3: str = ".mp3"
     WAV: str = ".wav"
-
-
-class VideoFormatsEnum(Enum):
-    """
-    This class represents the supported video file formats in the system.
-    These formats are used for uploading and downloading video files in projects.
-    """
-
     MP4: str = ".mp4"
     AVI: str = ".avi"
-
-
-class ImageFormatsEnum(Enum):
-    """
-    This class represents the supported image file formats in the system.
-    These formats are used for uploading and downloading image files in projects.
-    """
-
     JPEG: str = ".jpeg"
     PNG: str = ".png"
 
@@ -137,7 +121,7 @@ class ImageFormatsEnum(Enum):
 class ServicesTypesEnum(Enum):
     """
     This class represents the different types of services offered by the recording studio.
-    These services can be selected by clients when creating bookings and projects.
+    These services can be selected by clients when creating projects.
     """
 
     MIXING: str = "mixing"
@@ -147,6 +131,21 @@ class ServicesTypesEnum(Enum):
     PROMOTION: str = "promotion"
     GHOSTWRITING: str = "ghostwriting"
     RECORDING: str = "recording"
+    DESIGNING: str = "designing"
+
+
+class ServicesTypesForBookingEnum(Enum):
+    """
+    This class represents the different types of services offered by the recording studio.
+    These services can be selected by clients when creating bookings.
+    """
+
+    MIXING: str = "mixing"
+    MASTERING: str = "mastering"
+    BEATMAKING: str = "beatmaking"
+    PROMOTION: str = "promotion"
+    RECORDING: str = "recording"
+    DESIGNING: str = "designing"
 
 
 class PricingPlanEnum(Enum):
