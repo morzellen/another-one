@@ -1,0 +1,14 @@
+1. can client create a subproject? if subproject created automaticlly, 
+then created_by should be created_by: 'system', but we need to add assigned_to: 'UUID' 
+(specialist, which has be chosed when client was created booking)
+
+2. does the booking need to know which project and subproject it specifically refers to?
+
+3. how project is having information about his service types from booking? or system should create subprojects and then add they to project (-> project knows every type of subproject)?
+
+Can a client create a subproject?
+    No, the client cannot create subprojects directly. Subprojects are created automatically by the system or manually by employees (engineers/designers) when starting work on a project. In this case, created_by should be the UUID of the employee who creates the subproject, not "system". The assigned_to field is not needed, because created_by already indicates a specialist who works with the subproject.
+Should a reservation know which project and subproject it belongs to?
+    Yes, a reservation should know which project it belongs to (via project_id), but not necessarily to a specific subproject, because a reservation is the time allocated for a certain type of service, and subprojects are created already during the work on the project.
+How does the project get information about the types of services from the booking?
+    When a reservation is created, the system can automatically create a corresponding subproject with the same type of service (service_type) and add it to the project. Thus, the project will contain subprojects, each representing a specific type of service, and the project will know all types of services through its subprojects.
