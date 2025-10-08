@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Set
 from uuid import UUID
 from enums import (
     AuthProviderEnum,
@@ -13,13 +12,13 @@ from enums import (
     PaymentStatusesEnum,
     ProjectStatusesEnum,
     ServicesTypesEnum,
-    ServicesTypesForBookingEnum,
     SubProjectStatusesEnum,
     TaskStatusesEnum,
     UserRoleEnum,
     UserStatusesEnum,
+    BOOKING_ALLOWED_SERVICES,
 )
-from value_objects import ContactInfo, EmployeeInfo, PersonalInfo
+from value_objects import ContactInfo, EmployeeInfo, PersonalInfo, TimeRange
 
 
 @dataclass
@@ -33,18 +32,20 @@ class Booking:
     Client can reschedule the booking by himself, but only if it is confirmed by
     the owner/the person responsible for it. Otherwise, he may return to the time that
     was agreed upon.
+
+    Note:
+        The `service_type` must be one of the services allowed for booking.
+        See `BOOKING_ALLOWED_SERVICES` for the valid options.
     """
 
     id: UUID
     studio_id: UUID
     client_id: UUID
-    service_type: ServicesTypesForBookingEnum
-    start_time: datetime
-    end_time: datetime
     assigned_employee_id: UUID  # specialist id who is assigned to this booking
+    service_type: ServicesTypesEnum
+    time_range: TimeRange
 
     created_at: datetime
-    updated_at: datetime | None = None
 
     confirmed_at: datetime | None = None
     cancelled_at: datetime | None = None
@@ -54,8 +55,18 @@ class Booking:
     project_id: UUID | None = None  # can be not linked to a project
 
     status: BookingStatusesEnum = BookingStatusesEnum.CREATED
-    payment_status: PaymentStatusesEnum = PaymentStatusesEnum.UNPAID
-    payment_method: PaymentMethodsEnum = PaymentMethodsEnum.CASH
+    payment_status: PaymentStatusesEnum = PaymentStatusesEnum.PENDING
+    payment_method: PaymentMethodsEnum = (
+        PaymentMethodsEnum.CASH
+    )
+
+    def __post_init__(self) -> None:
+        """Validate that the service_type is allowed for booking."""
+        if self.service_type not in BOOKING_ALLOWED_SERVICES:
+            raise ValueError(
+                f"Service '{self.service_type.value}' is not allowed for booking. "
+                f"Allowed services: {[service.value for service in BOOKING_ALLOWED_SERVICES]}"
+            )
 
 
 @dataclass
@@ -117,6 +128,8 @@ class ClientProfile:
 
     user_id: UUID
 
+    created_from_oauth: bool = False
+
 
 @dataclass
 class EngineerProfile:
@@ -170,7 +183,7 @@ class DesignerProfile:
 
     user_id: UUID
     employee_info: EmployeeInfo
-    design_style_ids: List[UUID] = field(default_factory=list)
+    design_style_ids: list[UUID] = field(default_factory=list)
 
 
 @dataclass
@@ -213,15 +226,14 @@ class User:
     id: UUID
     studio_id: UUID
     contact_info: ContactInfo
-    personal_info: PersonalInfo
+    personal_info: PersonalInfo | None = None
     status: UserStatusesEnum
-    roles: Set[UserRoleEnum]
+    roles: set[UserRoleEnum]
 
     created_at: datetime
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
 
-    created_from_oauth: bool = False
     has_custom_profile: bool = False  # did the user edit the profile manually?
 
 
@@ -309,8 +321,8 @@ class SubProject:
     booking_id: UUID | None = None
 
     status: SubProjectStatusesEnum = SubProjectStatusesEnum.ASSIGNED
-    tasks_ids: List[UUID] = field(default_factory=list)
-    files_ids: List[UUID] = field(default_factory=list)
+    tasks_ids: list[UUID] = field(default_factory=list)
+    files_ids: list[UUID] = field(default_factory=list)
 
     completed_at: datetime | None = None
 
@@ -352,9 +364,9 @@ class Project:
     updated_at: datetime | None = None
 
     status: ProjectStatusesEnum = ProjectStatusesEnum.DRAFT
-    subprojects_ids: List[UUID] = field(default_factory=list)
-    comments_ids: List[UUID] = field(default_factory=list)
-    files_ids: List[UUID] = field(default_factory=list)
+    subprojects_ids: list[UUID] = field(default_factory=list)
+    comments_ids: list[UUID] = field(default_factory=list)
+    files_ids: list[UUID] = field(default_factory=list)
 
     completed_at: datetime | None = None
     archived_at: datetime | None = None
