@@ -12,3 +12,9 @@ Should a reservation know which project and subproject it belongs to?
     Yes, a reservation should know which project it belongs to (via project_id), but not necessarily to a specific subproject, because a reservation is the time allocated for a certain type of service, and subprojects are created already during the work on the project.
 How does the project get information about the types of services from the booking?
     When a reservation is created, the system can automatically create a corresponding subproject with the same type of service (service_type) and add it to the project. Thus, the project will contain subprojects, each representing a specific type of service, and the project will know all types of services through its subprojects.
+
+
+
+
+"""08.10.25"""
+All you need to know: check Subscription, User, Studio ents

@@ -19,6 +19,13 @@ class UserStatusesEnum(StrEnum):
     """
     This class represents the different statuses that a user can have in the system.
     These statuses help track the user's relationship with the studio over time.
+
+    The fields in this class are:
+    - NEW: The user has just created their account and is awaiting confirmation.
+    - ACTIVE: The user is active and has access to the platform's features.
+    - VIP: The user has been designated VIP status and has access to premium features.
+    - INACTIVE: The user is inactive and does not have access to the platform's features.
+    - BANNED: The user has been banned and no longer has access to the platform's features.
     """
 
     NEW: str = "new"
@@ -32,6 +39,7 @@ class BookingStatusesEnum(StrEnum):
     """
     This class represents the different statuses that a booking can have throughout its lifecycle.
     These statuses track the progress and state of studio bookings.
+
     The statuses are as follows:
     - CREATED: The booking has been created and is pending confirmation.
     - CONFIRMED: The booking has been confirmed and is scheduled to take place.
@@ -165,6 +173,10 @@ class PricingPlanEnum(StrEnum):
     """
     This class represents the different pricing plans available in the SaaS platform.
     These plans determine the features and capabilities available to users.
+
+    The fields in this class are:
+    - BASIC: The basic pricing plan, which offers limited features and capabilities.
+    - PRO: The pro pricing plan, which offers full features and capabilities.
     """
 
     BASIC: str = "basic"
@@ -193,3 +205,18 @@ class AuthProviderEnum(StrEnum):
     YANDEX: str = "yandex"
     VK: str = "vk"
     TELEGRAM: str = "telegram"
+
+
+class SubscriptionStatusesEnum(StrEnum):
+    """
+    This class represents the different statuses that a user's subscription can have.
+
+    The fields in this class are:
+    - ACTIVE: The subscription is currently active and the user has access to the platform's features.
+    - EXPIRED: The subscription has expired and the user no longer has access to the platform's features.
+    - CANCELLED: The subscription has been cancelled and the user no longer has access to the platform's features.
+    """
+
+    ACTIVE: str = "active"
+    EXPIRED: str = "expired"
+    CANCELLED: str = "cancelled"

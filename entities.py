@@ -10,9 +10,11 @@ from enums import (
     FileTypesEnum,
     PaymentMethodsEnum,
     PaymentStatusesEnum,
+    PricingPlanEnum,
     ProjectStatusesEnum,
     ServicesTypesEnum,
     SubProjectStatusesEnum,
+    SubscriptionStatusesEnum,
     TaskStatusesEnum,
     UserRoleEnum,
     UserStatusesEnum,
@@ -56,9 +58,7 @@ class Booking:
 
     status: BookingStatusesEnum = BookingStatusesEnum.CREATED
     payment_status: PaymentStatusesEnum = PaymentStatusesEnum.PENDING
-    payment_method: PaymentMethodsEnum = (
-        PaymentMethodsEnum.CASH
-    )
+    payment_method: PaymentMethodsEnum = PaymentMethodsEnum.CASH
 
     def __post_init__(self) -> None:
         """Validate that the service_type is allowed for booking."""
@@ -79,7 +79,9 @@ class DiscountPolicy:
 
     studio_id: UUID
     discount_percent: Decimal  # 0.1 = 10%
-    required_status: UserStatusesEnum | None
+    required_status: (
+        UserStatusesEnum | None
+    )  # this is the one who is covered by the discount
     min_tracks: int | None
     period_days: int | None
     created_at: datetime
@@ -96,7 +98,7 @@ class Studio:
     """
 
     id: UUID
-    owner_id: UUID
+    subscription_id: UUID
     name: str
     discount_policy: DiscountPolicy
     created_at: datetime
@@ -370,3 +372,17 @@ class Project:
 
     completed_at: datetime | None = None
     archived_at: datetime | None = None
+
+
+@dataclass
+class Subscription:
+    id: UUID
+    payment_id: UUID  # link to the payment
+    owner_id: UUID  # subscription buyer
+    studio_id: UUID  # studio linked to a subscription
+    pricing_plan: PricingPlanEnum
+    status: SubscriptionStatusesEnum
+    period: TimeRange
+
+    created_at: datetime
+    updated_at: datetime
