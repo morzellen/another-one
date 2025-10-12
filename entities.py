@@ -77,15 +77,16 @@ class DiscountPolicy:
     It's configured by the studio owner.
     """
 
-    studio_id: UUID
+    # should we have studio_id in here?
+
     discount_percent: Decimal  # 0.1 = 10%
-    required_status: (
-        UserStatusesEnum | None
-    )  # this is the one who is covered by the discount
     min_tracks: int | None
     period_days: int | None
     created_at: datetime
     updated_at: datetime | None = None
+    required_status: UserStatusesEnum = (
+        UserStatusesEnum.VIP
+    )  # this is the one who is covered by the discount
 
 
 @dataclass
@@ -98,11 +99,12 @@ class Studio:
     """
 
     id: UUID
+    owner_id: UUID # link to User.id
     subscription_id: UUID
     name: str
-    discount_policy: DiscountPolicy
     created_at: datetime
     updated_at: datetime | None = None
+    discount_policy: DiscountPolicy | None = None
 
 
 @dataclass
@@ -129,8 +131,7 @@ class ClientProfile:
     """
 
     user_id: UUID
-
-    created_from_oauth: bool = False
+    studio_id: UUID | None = None
 
 
 @dataclass
@@ -158,6 +159,7 @@ class EngineerProfile:
 
     user_id: UUID
     employee_info: EmployeeInfo
+    studio_id: UUID | None = None
 
 
 @dataclass
@@ -185,6 +187,7 @@ class DesignerProfile:
 
     user_id: UUID
     employee_info: EmployeeInfo
+    studio_id: UUID | None = None
     design_style_ids: list[UUID] = field(default_factory=list)
 
 
@@ -214,6 +217,7 @@ class OwnerProfile:
     """
 
     user_id: UUID
+    studio_id: UUID
 
 
 @dataclass
@@ -226,16 +230,19 @@ class AuthIdentity:
 @dataclass
 class User:
     id: UUID
-    studio_id: UUID
+    studio_id: UUID | None = (
+        None  # allow creation without a studio for prospective owners
+    )
     contact_info: ContactInfo
-    personal_info: PersonalInfo | None = None
     status: UserStatusesEnum
     roles: set[UserRoleEnum]
 
     created_at: datetime
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
+    personal_info: PersonalInfo | None = None
 
+    created_from_oauth: bool = False
     has_custom_profile: bool = False  # did the user edit the profile manually?
 
 
@@ -313,7 +320,6 @@ class SubProject:
     """
 
     id: UUID
-    studio_id: UUID
     project_id: UUID
     created_by: (
         UUID  # who created subproject and working with it (only emplyoee can do that)
@@ -338,7 +344,6 @@ class Comment:
     """
 
     id: UUID
-    studio_id: UUID
     project_id: UUID
     left_by: UUID  # it can be owner or client
     text: str
@@ -377,9 +382,8 @@ class Project:
 @dataclass
 class Subscription:
     id: UUID
-    payment_id: UUID  # link to the payment
-    owner_id: UUID  # subscription buyer
     studio_id: UUID  # studio linked to a subscription
+    payment_id: UUID  # link to the payment
     pricing_plan: PricingPlanEnum
     status: SubscriptionStatusesEnum
     period: TimeRange
