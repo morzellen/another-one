@@ -7,6 +7,7 @@ class UserRoleEnum(StrEnum):
     Each role has specific permissions and capabilities within the system.
     """
 
+    POTENTIAL_BUYER: str = "potential_buyer"
     CLIENT: str = "client"
     OWNER: str = "owner"
     ENGINEER: str = "engineer"
@@ -24,7 +25,7 @@ class UserStatusesEnum(StrEnum):
     - NEW: The user has just created their account and is awaiting confirmation.
     - ACTIVE: The user is active and has access to the platform's features.
     - VIP: The user has been designated VIP status and has access to premium features.
-    - INACTIVE: The user is inactive and does not have access to the platform's features.
+    - INACTIVE: The user is inactive.
     - BANNED: The user has been banned and no longer has access to the platform's features.
     """
 
@@ -158,27 +159,18 @@ class ServicesTypesEnum(StrEnum):
     DESIGNING: str = "designing"
 
 
-"""These services can be selected by clients when creating bookings."""
-BOOKING_ALLOWED_SERVICES = {
-    ServicesTypesEnum.MIXING,
-    ServicesTypesEnum.MASTERING,
-    ServicesTypesEnum.BEATMAKING,
-    ServicesTypesEnum.PROMOTION,
-    ServicesTypesEnum.RECORDING,
-    ServicesTypesEnum.DESIGNING,
-}
-
-
 class PricingPlanEnum(StrEnum):
     """
     This class represents the different pricing plans available in the SaaS platform.
     These plans determine the features and capabilities available to users.
 
     The fields in this class are:
+    - TRIAL: A trial tariff plan that is free and time-limited. In terms of functionality: BASIC.
     - BASIC: The basic pricing plan, which offers limited features and capabilities.
     - PRO: The pro pricing plan, which offers full features and capabilities.
     """
 
+    TRIAL: str = "trial"
     BASIC: str = "basic"
     PRO: str = "pro"
 
@@ -201,6 +193,7 @@ class AuthProviderEnum(StrEnum):
     These providers allow users to sign in using their existing social media accounts.
     """
 
+    NATIVE: str = "native"
     GOOGLE: str = "google"
     YANDEX: str = "yandex"
     VK: str = "vk"
@@ -218,5 +211,6 @@ class SubscriptionStatusesEnum(StrEnum):
     """
 
     ACTIVE: str = "active"
+    TRIAL: str = "trial"
     EXPIRED: str = "expired"
     CANCELLED: str = "cancelled"
