@@ -1,0 +1,40 @@
+class InvalidEmailError(Exception):
+    pass
+
+
+class InvalidPasswordError(Exception):
+    pass
+
+
+class UserNotFoundError(Exception):
+    pass
+
+
+class InvalidPhoneError(Exception):
+    pass
+
+
+class InvalidFileFormatError(Exception):
+    pass
+
+
+class InvalidTimeRangeError(Exception):
+    pass
+
+
+class TrialLimitExceededError(Exception):
+    """Исключение, возникающее при превышении лимита пробных периодов для владельца."""
+
+    pass
+
+
+class InvalidContactInfoError(Exception):
+    pass
+
+
+class InvalidEmployeeInfoError(Exception):
+    pass
+
+
+class InvalidPersonalInfoError(Exception):
+    pass
