@@ -1,4 +1,5 @@
-from .enums import ServicesTypesEnum, UserRoleEnum
+from decimal import Decimal
+from .domain.enums import PricingPlanEnum, ServicesTypesEnum, UserRoleEnum
 
 # Словарь ROLE_FUNCTIONALITY задаёт набор разрешённых действий (в виде строк-идентификаторов)
 # для каждой роли пользователя в системе. Эти идентификаторы используются в механизмах
@@ -83,5 +84,22 @@ BOOKING_ALLOWED_SERVICES = {
 
 
 # service: TrialLimitService
+
 # method: can_activate_trial_for_owner
-MAX_TRIALS_PER_OWNER=1
+MAX_TRIALS_PER_OWNER = 1
+
+
+# service: StudioService
+
+# methods: create_studio, activate_trial
+TRIAL_PERIOD_IN_DAYS = 7
+
+# method: renew_subscription
+SUB_PERIOD_IN_DAYS = 30
+
+# method: get_pricing_for_plan
+PRICES_FOR_SUB_PLANS = {
+    PricingPlanEnum.TRIAL: Decimal("0.00"),
+    PricingPlanEnum.BASIC: Decimal("9.99"),
+    PricingPlanEnum.PRO: Decimal("29.99"),
+}
