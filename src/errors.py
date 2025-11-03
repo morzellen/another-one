@@ -38,3 +38,31 @@ class InvalidEmployeeInfoError(Exception):
 
 class InvalidPersonalInfoError(Exception):
     pass
+
+
+class InvalidDiscountPolicyError(Exception):
+    pass
+
+
+class InvalidStudioConfigurationError(Exception):
+    pass
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class PaymentFailedError(Exception):
+    pass
+
+
+class RoleAssignmentError(Exception):
+    pass
+
+
+class BookingTimeRangeCannotBeEmpty(Exception):
+    pass
+
+
+class BookingCannotBeCompleted(Exception):
+    pass
