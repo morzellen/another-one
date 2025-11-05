@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from ..entities.subscription import Subscription
 from ..enums import PricingPlanEnum, SubscriptionStatusesEnum
-from ..value_objects.booking_time_range import TimeRange
+from ..bookings.value_objects.booking_time_range_vo import TimeRange
 
 
 class SubscriptionDomainService:

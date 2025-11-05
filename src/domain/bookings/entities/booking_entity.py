@@ -8,11 +8,11 @@ from ...errors import (
     BookingCannotBeRescheduledError,
     UnsupportedBookingServiceError,
 )
-from ..bookings.value_objects.booking_time_range_vo import BookingTimeRange
+from ..value_objects.booking_time_range_vo import BookingTimeRange
 from ..enums import (
     BookingStatusesEnum,
-    BookingPaymentMethodsEnum,
-    BookingPaymentStatusesEnum,
+    PaymentMethodsEnum,
+    PaymentStatusesEnum,
     ServicesTypesEnum,
 )
 
@@ -64,8 +64,8 @@ class Booking:
         rescheduled_at: datetime | None = None,
         project_id: UUID | None = None,
         status: BookingStatusesEnum = BookingStatusesEnum.CREATED,
-        payment_status: BookingPaymentStatusesEnum = BookingPaymentStatusesEnum.PENDING,
-        payment_method: BookingPaymentMethodsEnum = BookingPaymentMethodsEnum.CASH,
+        payment_status: PaymentStatusesEnum = PaymentStatusesEnum.PENDING,
+        payment_method: PaymentMethodsEnum = PaymentMethodsEnum.CASH,
     ):
         self._validate_service_type(service_type)
         self._id = id
@@ -149,11 +149,11 @@ class Booking:
         return self._status
 
     @property
-    def payment_status(self) -> BookingPaymentStatusesEnum:
+    def payment_status(self) -> PaymentStatusesEnum:
         return self._payment_status
 
     @property
-    def payment_method(self) -> BookingPaymentMethodsEnum:
+    def payment_method(self) -> PaymentMethodsEnum:
         return self._payment_method
 
     @property
@@ -292,7 +292,7 @@ class Booking:
         self._reschedule_count += 1
         self._status = BookingStatusesEnum.RESCHEDULED
 
-    def update_payment_status(self, payment_status: BookingPaymentStatusesEnum):
+    def update_payment_status(self, payment_status: PaymentStatusesEnum):
         """Обновляет статус оплаты."""
         self._payment_status = payment_status
 

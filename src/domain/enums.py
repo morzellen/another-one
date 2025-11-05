@@ -54,34 +54,6 @@ class BookingStatusesEnum(StrEnum):
     RESCHEDULED: str = "rescheduled"
 
 
-class PaymentStatusesEnum(StrEnum):
-    """
-    This class represents the different payment statuses for transactions in the system.
-    These statuses indicate whether payments have been processed or are pending.
-
-    The fields in this class are:
-    - PAID: The payment has been processed.
-    - PENDING: The payment is pending.
-    """
-
-    PAID: str = "paid"
-    PENDING: str = "pending"
-
-
-class PaymentMethodsEnum(StrEnum):
-    """
-    This class represents the different payment methods available for transactions in the system.
-    These methods allow clients to pay for studio services using various options.
-
-    The fields in this class are:
-    - CASH: The payment will be made in cash at the studio.
-    - CARD: The payment will be made using a credit card.
-    """
-
-    CASH: str = "cash"
-    CARD: str = "card"
-
-
 class SubProjectStatusesEnum(StrEnum):
     """
     This class represents the basic statuses that a subproject can have.
