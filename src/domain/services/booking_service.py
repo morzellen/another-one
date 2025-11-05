@@ -4,7 +4,7 @@ from uuid import UUID
 
 from ..entities.booking import Booking
 from ..enums import BookingStatusesEnum
-from ..value_objects.time_range import TimeRange
+from ..value_objects.booking_time_range import TimeRange
 
 
 class BookingDomainService:

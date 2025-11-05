@@ -18,7 +18,7 @@ class InvalidFileFormatError(Exception):
     pass
 
 
-class InvalidTimeRangeError(Exception):
+class InvalidBookingTimeRangeError(Exception):
     pass
 
 
@@ -60,9 +60,21 @@ class RoleAssignmentError(Exception):
     pass
 
 
-class BookingTimeRangeCannotBeEmpty(Exception):
+class BookingCannotBeCompletedError(Exception):
     pass
 
 
-class BookingCannotBeCompleted(Exception):
+class BookingCannotBeConfirmedError(Exception):
+    pass
+
+
+class BookingCannotBeCanceledError(Exception):
+    pass
+
+
+class BookingCannotBeRescheduledError(Exception):
+    pass
+
+
+class UnsupportedBookingServiceError(Exception):
     pass
