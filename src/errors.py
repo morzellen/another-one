@@ -18,10 +18,6 @@ class InvalidFileFormatError(Exception):
     pass
 
 
-class InvalidBookingTimeRangeError(Exception):
-    pass
-
-
 class TrialLimitExceededError(Exception):
     """Исключение, возникающее при превышении лимита пробных периодов для владельца."""
 
@@ -57,24 +53,4 @@ class PaymentFailedError(Exception):
 
 
 class RoleAssignmentError(Exception):
-    pass
-
-
-class BookingCannotBeCompletedError(Exception):
-    pass
-
-
-class BookingCannotBeConfirmedError(Exception):
-    pass
-
-
-class BookingCannotBeCanceledError(Exception):
-    pass
-
-
-class BookingCannotBeRescheduledError(Exception):
-    pass
-
-
-class UnsupportedBookingServiceError(Exception):
     pass

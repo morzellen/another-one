@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from src.errors import InvalidBookingTimeRangeError
+from .booking_time_range_errors import InvalidBookingTimeRangeError
 
 
 @dataclass(frozen=True)
@@ -23,6 +23,7 @@ class BookingTimeRange:
     start_time: datetime
     end_time: datetime
 
+    # TODO: перенести строковое описание ошибок куда-то; заменить ValueError на более подходящее
     def __post_init__(self):
         """Проверяет инварианты временного диапазона."""
         if self.end_time <= self.start_time:
@@ -61,14 +62,14 @@ class BookingTimeRange:
         return self.end_time - self.start_time
 
     def __str__(self) -> str:
-        """Человекочитаемое представление для логов и UI."""
+        """Представление для логов и UI."""
         return (
             f"{self.start_time.strftime('%Y-%m-%d %H:%M')} - "
             f"{self.end_time.strftime('%Y-%m-%d %H:%M')}"
         )
 
     def __repr__(self) -> str:
-        """Техническое представление для отладки."""
+        """Представление для отладки."""
         return (
             f"BookingTimeRange("
             f"start_time={self.start_time.isoformat()}, "

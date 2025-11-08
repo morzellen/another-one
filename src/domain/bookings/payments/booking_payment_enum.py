@@ -1,6 +1,7 @@
-from enum import StrEnum
+from enum import StrEnum, auto, unique
 
 
+@unique
 class BookingPaymentStatusesEnum(StrEnum):
     """
     This class represents the different payment statuses for booking transactions in the system.
@@ -13,12 +14,13 @@ class BookingPaymentStatusesEnum(StrEnum):
     - FAILED: The payment attempt has failed.
     """
 
-    PENDING = "pending"  # Ожидает оплаты
-    PAID = "paid"  # Оплачен
-    REFUNDED = "refunded"  # Возвращён
-    FAILED = "failed"  # Неудачная попытка оплаты
+    PENDING = auto()  # Ожидает оплаты
+    PAID = auto()  # Оплачен
+    REFUNDED = auto()  # Возвращён
+    FAILED = auto()  # Неудачная попытка оплаты
 
 
+@unique
 class BookingPaymentMethodsEnum(StrEnum):
     """
     This class represents the different payment methods available for booking transactions in the system.
@@ -30,6 +32,6 @@ class BookingPaymentMethodsEnum(StrEnum):
     - ONLINE: The payment will be processed online using a payment gateway.
     """
 
-    CASH = "cash"  # Наличные на студии
-    CARD = "card"  # Банковская карта
-    ONLINE = "online"  # Онлайн-платежи (ЮKassa и другие)
+    CASH = auto()  # Наличные на студии
+    CARD = auto()  # Банковская карта
+    ONLINE = auto()  # Онлайн-платежи (ЮKassa и другие)

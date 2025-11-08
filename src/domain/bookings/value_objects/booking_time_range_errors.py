@@ -1,0 +1,2 @@
+class InvalidBookingTimeRangeError(Exception):
+    pass

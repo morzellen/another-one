@@ -34,26 +34,6 @@ class UserStatusesEnum(StrEnum):
     BANNED: str = "banned"
 
 
-class BookingStatusesEnum(StrEnum):
-    """
-    This class represents the different statuses that a booking can have throughout its lifecycle.
-    These statuses track the progress and state of studio bookings.
-
-    The statuses are as follows:
-    - CREATED: The booking has been created and is pending confirmation.
-    - RESCHEDULED: The booking has been rescheduled.
-    - CONFIRMED: The booking has been confirmed and is scheduled to take place.
-    - COMPLETED: The booking has been completed.
-    - CANCELLED: The booking has been cancelled.
-    """
-
-    CREATED: str = "created"
-    CONFIRMED: str = "confirmed"
-    CANCELLED: str = "cancelled"
-    COMPLETED: str = "completed"
-    RESCHEDULED: str = "rescheduled"
-
-
 class SubProjectStatusesEnum(StrEnum):
     """
     This class represents the basic statuses that a subproject can have.
