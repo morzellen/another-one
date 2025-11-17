@@ -35,3 +35,9 @@ class BookingPaymentMethodsEnum(StrEnum):
     CASH = auto()  # Наличные на студии
     CARD = auto()  # Банковская карта
     ONLINE = auto()  # Онлайн-платежи (ЮKassa и другие)
+
+
+class BookingPaymentCurrenciesEnum(StrEnum):
+    RUB = auto()  # Российский рубль
+    USD = auto()  # Доллар США
+    EUR = auto()  # Евро

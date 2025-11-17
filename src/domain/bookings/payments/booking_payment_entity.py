@@ -7,7 +7,11 @@ from .booking_payment_errors import (
     BookingPaymentRefundError,
     InvalidBookingPaymentAmountError,
 )
-from .booking_payment_enum import BookingPaymentMethodsEnum, BookingPaymentStatusesEnum
+from .booking_payment_enum import (
+    BookingPaymentMethodsEnum,
+    BookingPaymentStatusesEnum,
+    BookingPaymentCurrenciesEnum,
+)
 
 
 class BookingPayment:
@@ -21,7 +25,7 @@ class BookingPayment:
         id: UUID,
         booking_id: UUID,
         amount: Decimal,
-        currency: str,  # TODO: need to add enum
+        currency: BookingPaymentCurrenciesEnum,
         created_at: datetime,
         status: BookingPaymentStatusesEnum = BookingPaymentStatusesEnum.PENDING,
         payment_method: BookingPaymentMethodsEnum = BookingPaymentMethodsEnum.CASH,
@@ -32,21 +36,21 @@ class BookingPayment:
         self._id = id
         self._booking_id = booking_id
         self._amount = amount
-        self._currency = currency.upper()
+        self._currency = currency
         self._created_at = created_at
         self._status = status
         self._payment_method = payment_method
         self._paid_at = paid_at
         self._refunded_at = refunded_at
 
-    # TODO: check this method cause we change amount from float to Decimal
-    # строковое представление ошибки вынести куда-то
     def _validate_amount(self, amount: Decimal) -> None:
         if amount <= 0:
-            raise InvalidBookingPaymentAmountError("Сумма платежа должна быть положительной")
+            raise InvalidBookingPaymentAmountError(
+                InvalidBookingPaymentAmountError.POSITIVE_MESSAGE, amount
+            )
         if round(amount, 2) != amount:
             raise InvalidBookingPaymentAmountError(
-                "Сумма должна иметь не более 2 знаков после запятой"
+                InvalidBookingPaymentAmountError.PRECISION_MESSAGE, amount
             )
 
     # endregion
@@ -90,28 +94,28 @@ class BookingPayment:
 
     # endregion
 
-    # region Methods TODO: вынести комментарии к ошибкам в какие-то константы (возможно засунуть в классы этих ошибок)
+    # region Methods
+
+    def _update_payment_status(self, status: BookingPaymentStatusesEnum) -> None:
+        """Обновляет статус оплаты."""
+        self._status = status
+
     def mark_as_paid(self, paid_at: datetime) -> None:
         """Подтверждает получение оплаты"""
         if self._status != BookingPaymentStatusesEnum.PENDING:
-            raise BookingPaymentAlreadyPaidError(
-                f"Платёж в статусе {self._status.value} не может быть оплачен повторно"
-            )
-        self._status = BookingPaymentStatusesEnum.PAID
+            raise BookingPaymentAlreadyPaidError(status=self._status.value)
+        self._update_payment_status(BookingPaymentStatusesEnum.PAID)
         self._paid_at = paid_at
 
     def refund(self, refunded_at: datetime) -> None:
         """Выполняет возврат средств"""
         if self._status != BookingPaymentStatusesEnum.PAID:
             raise BookingPaymentRefundError(
-                f"Возврат возможен только для оплаченных платежей. Текущий статус: {self._status.value}"
+                BookingPaymentRefundError.INVALID_STATUS_MESSAGE, self._status.value
             )
-        self._status = BookingPaymentStatusesEnum.REFUNDED
+        if refunded_at < self._paid_at:
+            raise BookingPaymentRefundError(BookingPaymentRefundError.INVALID_REFUND_DATE_MESSAGE)
+        self._update_payment_status(BookingPaymentStatusesEnum.REFUNDED)
         self._refunded_at = refunded_at
-
-    # TODO: подумать, надо ли оно нам здесь
-    def update_payment_status(self, payment_status: BookingPaymentStatusesEnum):
-        """Обновляет статус оплаты."""
-        self._payment_status = payment_status
 
     # endregion

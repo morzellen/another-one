@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from .booking_time_range_errors import InvalidBookingTimeRangeError
+from .booking_time_range_errors import InvalidBookingTimeRangeError, InvalidBookingTimezoneError
 
 
 @dataclass(frozen=True)
@@ -23,16 +23,12 @@ class BookingTimeRange:
     start_time: datetime
     end_time: datetime
 
-    # TODO: перенести строковое описание ошибок куда-то; заменить ValueError на более подходящее
     def __post_init__(self):
         """Проверяет инварианты временного диапазона."""
         if self.end_time <= self.start_time:
-            raise InvalidBookingTimeRangeError(
-                f"Некорректный временной диапазон бронирования: end_time ({self.end_time}) "
-                f"должен быть позже start_time ({self.start_time})"
-            )
+            raise InvalidBookingTimeRangeError(self.end_time, self.start_time)
         if self.start_time.tzinfo is None or self.end_time.tzinfo is None:
-            raise ValueError("Требуются даты и время с информацией о часовом поясе")
+            raise InvalidBookingTimezoneError()
 
     def contains(self, time: datetime) -> bool:
         """

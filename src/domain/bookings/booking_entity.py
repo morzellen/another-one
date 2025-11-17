@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .value_objects.booking_time_range_vo import BookingTimeRange
 from .booking_enums import BookingStatusesEnum, BookingServicesTypesEnum
@@ -8,7 +8,6 @@ from .booking_errors import (
     BookingCannotBeCompletedError,
     BookingCannotBeConfirmedError,
     BookingCannotBeRescheduledError,
-    UnsupportedBookingServiceError,
 )
 
 
@@ -28,9 +27,12 @@ class Booking:
     """
 
     # region Константы
+
     # Максимальное количество раз, на которое можно перенести бронирование.
-    # TODO: подумать, как обезопаситься от случайного изменения этого значения
-    _BOOKING_RESCHEDULE_LIMIT = 2
+    __BOOKING_RESCHEDULE_LIMIT = 2
+
+    # Часы до начала бронирования, после которых нельзя отменить
+    __CANCELLATION_CUTOFF_HOURS = 24
 
     # endregion
 
@@ -40,7 +42,7 @@ class Booking:
         id: UUID,
         studio_id: UUID,
         client_id: UUID,
-        payment_id: UUID,  # TODO: будет ли id обязательным? Должно ли тут оно быть?
+        payment_id: UUID,  # TODO: убрать здесь, реализовать через События домена + Сервисы домена
         assigned_employee_id: UUID,
         service_type: BookingServicesTypesEnum,
         time_range: BookingTimeRange,
@@ -52,7 +54,6 @@ class Booking:
         project_id: UUID | None = None,
         status: BookingStatusesEnum = BookingStatusesEnum.CREATED,
     ):
-        self._validate_booking_service_type(service_type)
         self._id = id
         self._studio_id = studio_id
         self._client_id = client_id
@@ -67,16 +68,6 @@ class Booking:
         self._reschedule_count = 0
         self._project_id = project_id
         self._status = status
-
-    # TODO: Надо ли оно нам здесь? И вообще, BookingServicesTypesEnum это enum
-    # TODO: строковое представление ошибки перенести куда-то, если валидация в итоге нужна
-    def _validate_booking_service_type(self, service_type: BookingServicesTypesEnum) -> None:
-        """Проверяет, что service_type разрешён для бронирования."""
-        if service_type not in BookingServicesTypesEnum:
-            raise UnsupportedBookingServiceError(
-                f"Услуга '{service_type.value}' не разрешена для бронирования. "
-                f"Разрешённые услуги: {[service.value for service in BookingServicesTypesEnum]}"
-            )
 
     # endregion
 
@@ -200,19 +191,7 @@ class Booking:
         Добавить проверку, что время бронирования не пересекается с другими бронированиями.
         Если мы добавим эту проверку, то теоретически это становится методом, а не свойством.
         """
-        return self.is_active and self._reschedule_count < self._BOOKING_RESCHEDULE_LIMIT
-
-    @property
-    def can_be_cancelled(self) -> bool:
-        """
-        Проверяет, можно ли отменить бронирование.
-        TODO:
-        Добавить проверку, что бронирование нельзя отменить за 24 часа до начала.
-        Не использовать datetime.now() здесь. Принимать текущее время извне.
-        Если мы добавим эту проверку, то теоретически это становится методом, а не свойством.
-        Если бронирование подтверждено, его тоже можно отменить (непредвиденные ситуации на студии, например).
-        """
-        return self.is_active
+        return self.is_active and self._reschedule_count < self.reschedule_limit
 
     @property
     def can_be_completed(self) -> bool:
@@ -221,27 +200,50 @@ class Booking:
         """
         return self.is_confirmed
 
+    @property
+    def reschedule_limit(self) -> int:
+        return self.__BOOKING_RESCHEDULE_LIMIT
+
+    @property
+    def cancellation_cutoff_hours(self) -> int:
+        return self.__CANCELLATION_CUTOFF_HOURS
+
     # endregion
 
-    # region Методы TODO: вынести строковые сообщения куда-то;
-    # TODO: Подумать о внедрении has_conflict_with_other_time_range (если такой метод в итоге оставляем в сущности)
-    # в некоторые методы, а скорее даже в properties, такие как can_be_confirmed, can_be_rescheduled,
-    # поскольку они отвечают на вопрос о том, можно ли подтвердить или перенести. В таком случае, судя по всему,
-    # can_be_confirmed, can_be_rescheduled станут методами, а не свойствами.
+    # region
+    # Методы TODO: вынести строковые сообщения в классы ошибок;
+    # TODO: Нужно проверять на конфликты с другими временными диапозонами бронирований (с другими бронированиями)
+    # в can_be_confirmed, can_be_rescheduled, поскольку они отвечают на вопрос о том, можно ли подтвердить
+    # или перенести. Значит они точно не будут свойствами. У нас есть booking_conflict_checker_service.py
+
+    def can_be_cancelled(self, current_time: datetime) -> bool:
+        """
+        Проверяет, можно ли отменить бронирование.
+        Бронирование нельзя отменить за 24 часа до начала.
+        Если бронирование подтверждено, его тоже можно отменить
+        (непредвиденные ситуации на студии, например).
+
+        В application — передача текущего времени через параметр.
+
+        TODO: Подумать над timedelta(hours=self.cancellation_cutoff_hours)
+        """
+        time_until_booking = self.time_range.start_time - current_time
+        is_within_cutoff = time_until_booking < timedelta(hours=self.cancellation_cutoff_hours)
+        return self.is_active and not is_within_cutoff
 
     def confirm(self, confirmed_at: datetime):
         """Подтверждает бронирование."""
         if not self.can_be_confirmed:
-            raise BookingCannotBeConfirmedError(
-                f"Бронирование в статусе {self._status} не может быть подтверждено"
-            )
+            raise BookingCannotBeConfirmedError(self._status)
         self._status = BookingStatusesEnum.CONFIRMED
         self._confirmed_at = confirmed_at
 
     def cancel(self, cancelled_at: datetime):
         """Отменяет бронирование."""
         if self._status == BookingStatusesEnum.COMPLETED:
-            raise BookingCannotBeCanceledError("Нельзя отменить завершённое бронирование")
+            raise BookingCannotBeCanceledError(
+                BookingCannotBeCanceledError.COMPLETED_BOOKING_MESSAGE
+            )
         self._status = BookingStatusesEnum.CANCELLED
         self._cancelled_at = cancelled_at
 
@@ -251,9 +253,7 @@ class Booking:
         Оно может быть завершено после того, как время бронирования закончилось.
         """
         if not self.can_be_completed:
-            raise BookingCannotBeCompletedError(
-                "Нельзя завершить бронирование, которое не подтверждено"
-            )
+            raise BookingCannotBeCompletedError()
         self._status = BookingStatusesEnum.COMPLETED
         self._completed_at = completed_at
 
@@ -265,20 +265,13 @@ class Booking:
         """
         if not self.can_be_rescheduled:
             raise BookingCannotBeRescheduledError(
-                f"Бронирование не может быть перенесено. "
-                f"Текущий статус: {self.status.value}, "
-                f"количество переносов: {self._reschedule_count}/{self._BOOKING_RESCHEDULE_LIMIT}"
+                status=self.status,
+                reschedule_count=self._reschedule_count,
+                limit=self.reschedule_limit,
             )
         self._time_range = new_time_range
         self._rescheduled_at = rescheduled_at
         self._reschedule_count += 1
         self._status = BookingStatusesEnum.RESCHEDULED
-
-    # TODO: подумать, надо оно тут или нет
-    def has_conflict_with_other_time_range(self, other_time_range: BookingTimeRange) -> bool:
-        """
-        Проверяет, конфликтует ли это бронирование с другим временным диапазоном.
-        """
-        return self._time_range.overlaps_with(other_time_range)
 
     # endregion
