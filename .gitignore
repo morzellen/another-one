@@ -3,3 +3,6 @@
 .pytest_cache
 copy_code.py
 code_result.txt
+.env
+venv
+.venv
