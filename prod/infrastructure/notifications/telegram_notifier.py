@@ -2,7 +2,7 @@ import logging
 import requests
 from typing import Dict, Any
 
-from ...domain.events.booking_events import BookingConfirmedEvent, BookingCancelledEvent
+from ...domain.bookings.booking_events import BookingConfirmedEvent, BookingCancelledEvent
 from ...application.services.event_bus import EventBus
 from .retry_mechanism import with_retry
 

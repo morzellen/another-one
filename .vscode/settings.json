@@ -1,0 +1,43 @@
+{
+    "explorerSort.rules": [
+        {
+            "name": "Auto-generated for **/prod/**",
+            "pathPattern": "**/prod/**",
+            "priorities": [
+                {
+                    "condition": "name === 'domain'",
+                    "priority": 200
+                },
+                {
+                    "condition": "name === 'application'",
+                    "priority": 100
+                },
+                {
+                    "condition": "name === 'infrastructure'",
+                    "priority": 100
+                },
+                {
+                    "condition": "name === 'config'",
+                    "priority": 0
+                },
+                {
+                    "condition": "name === '__pycache__'",
+                    "priority": -100
+                }
+            ]
+        },
+        {
+            "name": "Auto-generated for **",
+            "pathPattern": "**",
+            "priorities": [
+                {
+                    "condition": "name === '__pycache__'",
+                    "priority": -200
+                }
+            ]
+        }
+    ],
+    "files.exclude": {
+        "**/__pycache__": true
+    }
+}

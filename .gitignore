@@ -6,3 +6,4 @@ code_result.txt
 .env
 venv
 .venv
+__pycache__

@@ -8,6 +8,7 @@ from .booking_payment_errors import (
     InvalidBookingPaymentAmountError,
 )
 from .booking_payment_enum import (
+    BookingPaymentFormEnum,
     BookingPaymentMethodsEnum,
     BookingPaymentStatusesEnum,
     BookingPaymentCurrenciesEnum,
@@ -28,7 +29,8 @@ class BookingPayment:
         currency: BookingPaymentCurrenciesEnum,
         created_at: datetime,
         status: BookingPaymentStatusesEnum = BookingPaymentStatusesEnum.PENDING,
-        payment_method: BookingPaymentMethodsEnum = BookingPaymentMethodsEnum.CASH,
+        payment_form: BookingPaymentFormEnum | None = None,
+        payment_method: BookingPaymentMethodsEnum | None = None,
         paid_at: datetime | None = None,
         refunded_at: datetime | None = None,
     ):
@@ -39,6 +41,7 @@ class BookingPayment:
         self._currency = currency
         self._created_at = created_at
         self._status = status
+        self._payment_form = payment_form
         self._payment_method = payment_method
         self._paid_at = paid_at
         self._refunded_at = refunded_at
@@ -69,11 +72,15 @@ class BookingPayment:
         return self._amount
 
     @property
-    def currency(self) -> str:
+    def currency(self) -> BookingPaymentCurrenciesEnum:
         return self._currency
 
     @property
-    def payment_method(self) -> BookingPaymentMethodsEnum:
+    def payment_form(self) -> BookingPaymentFormEnum | None:
+        return self._payment_form
+
+    @property
+    def payment_method(self) -> BookingPaymentMethodsEnum | None:
         return self._payment_method
 
     @property
@@ -113,7 +120,7 @@ class BookingPayment:
             raise BookingPaymentRefundError(
                 BookingPaymentRefundError.INVALID_STATUS_MESSAGE, self._status.value
             )
-        if refunded_at < self._paid_at:
+        if self._paid_at and refunded_at < self._paid_at:
             raise BookingPaymentRefundError(BookingPaymentRefundError.INVALID_REFUND_DATE_MESSAGE)
         self._update_payment_status(BookingPaymentStatusesEnum.REFUNDED)
         self._refunded_at = refunded_at

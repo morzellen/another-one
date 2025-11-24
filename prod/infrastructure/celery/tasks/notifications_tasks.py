@@ -1,6 +1,6 @@
 from celery import shared_task
-from ..infrastructure.notifications.telegram_notifier import TelegramNotifier
-from ..infrastructure.redis_client import RedisClient
+from ..notifications.telegram_notifier import TelegramNotifier
+from ..redis_client import RedisClient
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,16 +1,22 @@
+import logging
 from uuid import UUID
 from datetime import datetime, timedelta
 
-from .value_objects.booking_time_range_vo import BookingTimeRange
+from .value_object.booking_time_range_vo import BookingTimeRange
 from .booking_enums import BookingStatusesEnum, BookingServicesTypesEnum
+from .booking_events import (
+    BookingCancelledEvent,
+    BookingCompletedEvent,
+    BookingConfirmedEvent,
+    BookingRescheduledEvent,
+    DomainEvent,
+)
 from .booking_errors import (
     BookingCannotBeCanceledError,
     BookingCannotBeCompletedError,
     BookingCannotBeConfirmedError,
     BookingCannotBeRescheduledError,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +28,9 @@ class Booking:
     мастеринг, запись и т.д.
     Может быть создано клиентами и подтверждено владельцами студии.
     Может быть привязано к существующему проекту и его подпроектам или не привязано вообще.
-    Клиент может перенести бронирование самостоятельно, но только если оно подтверждено
+    Клиент может перенести бронирование самостоятельно, но только если оно будет подтверждено
     владельцем/ответственным лицом. В противном случае он может вернуться к изначально
     согласованному времени.
-    Примечание:
-        `service_type` должен быть одной из услуг, разрешённых для бронирования.
-        См. `BOOKING_ALLOWED_SERVICES` для допустимых вариантов.
     """
 
     # region Константы
@@ -46,7 +49,6 @@ class Booking:
         id: UUID,
         studio_id: UUID,
         client_id: UUID,
-        payment_id: UUID,  # TODO: убрать здесь, реализовать через События домена + Сервисы домена
         assigned_employee_id: UUID,
         service_type: BookingServicesTypesEnum,
         time_range: BookingTimeRange,
@@ -121,6 +123,10 @@ class Booking:
         return self._rescheduled_at
 
     @property
+    def reschedule_count(self) -> int:
+        return self._reschedule_count
+
+    @property
     def project_id(self) -> UUID | None:
         return self._project_id
 
@@ -149,28 +155,28 @@ class Booking:
         """
         Проверяет, перенесено ли бронирование.
         """
-        return self._status == BookingStatusesEnum.RESCHEDULED
+        return self._rescheduled_at is not None and self._status == BookingStatusesEnum.RESCHEDULED
 
     @property
     def is_confirmed(self) -> bool:
         """
         Проверяет, подтверждено ли бронирование.
         """
-        return self._status == BookingStatusesEnum.CONFIRMED
+        return self._confirmed_at is not None and self._status == BookingStatusesEnum.CONFIRMED
 
     @property
     def is_completed(self) -> bool:
         """
         Проверяет, завершено ли бронирование.
         """
-        return self._status == BookingStatusesEnum.COMPLETED
+        return self._completed_at is not None and self._status == BookingStatusesEnum.COMPLETED
 
     @property
     def is_cancelled(self) -> bool:
         """
         Проверяет, отменено ли бронирование.
         """
-        return self._status == BookingStatusesEnum.CANCELLED
+        return self._cancelled_at is not None and self._status == BookingStatusesEnum.CANCELLED
 
     @property
     def is_pending(self) -> bool:
@@ -195,7 +201,7 @@ class Booking:
         Добавить проверку, что время бронирования не пересекается с другими бронированиями.
         Если мы добавим эту проверку, то теоретически это становится методом, а не свойством.
         """
-        return self.is_active and self._reschedule_count < self.reschedule_limit
+        return self.is_active and self._reschedule_count < self.__BOOKING_RESCHEDULE_LIMIT
 
     @property
     def can_be_completed(self) -> bool:
@@ -214,11 +220,7 @@ class Booking:
 
     # endregion
 
-    # region
-    # Методы TODO: вынести строковые сообщения в классы ошибок;
-    # TODO: Нужно проверять на конфликты с другими временными диапозонами бронирований (с другими бронированиями)
-    # в can_be_confirmed, can_be_rescheduled, поскольку они отвечают на вопрос о том, можно ли подтвердить
-    # или перенести. Значит они точно не будут свойствами. У нас есть booking_conflict_checker_service.py
+    # region Методы
 
     def can_be_cancelled(self, current_time: datetime) -> bool:
         """
@@ -228,30 +230,21 @@ class Booking:
         (непредвиденные ситуации на студии, например).
 
         В application — передача текущего времени через параметр.
-
-        TODO: Подумать над timedelta(hours=self.cancellation_cutoff_hours)
         """
         time_until_booking = self.time_range.start_time - current_time
-        is_within_cutoff = time_until_booking < timedelta(hours=self.cancellation_cutoff_hours)
-        return self.is_active and not is_within_cutoff
+        cancellation_cutoff = timedelta(hours=self.__CANCELLATION_CUTOFF_HOURS)
+        return self.is_active and time_until_booking > cancellation_cutoff
 
-    # TODO: ОТРЕФАКТОРИТЬ ПО DDD CA
-    def confirm(self, confirmed_at: datetime):
-        """Подтверждает бронирование и публикует событие через распределенную шину"""
+    def mark_as_confirmed(self, current_time: datetime) -> list[DomainEvent]:
+        """Помечает бронирование как подтвержденное и публикует событие"""
         if not self.can_be_confirmed:
-            raise BookingCannotBeConfirmedError(self._status)
+            raise BookingCannotBeConfirmedError(self._status.value)
 
         self._status = BookingStatusesEnum.CONFIRMED
-        self._confirmed_at = confirmed_at
-
-        # Публикация события через распределенный публикатор
-        from ...application.services.event_publisher import DistributedEventPublisher
-        from uuid import uuid4
-        from ...domain.events.booking_events import BookingConfirmedEvent
+        self._confirmed_at = current_time
 
         event = BookingConfirmedEvent(
-            event_id=uuid4(),
-            occurred_at=confirmed_at,
+            occurred_at=self._confirmed_at,
             booking_id=self.id,
             studio_id=self.studio_id,
             client_id=self.client_id,
@@ -259,61 +252,85 @@ class Booking:
             time_range_end=self.time_range.end_time,
         )
 
-        logger.info(
-            f"📤 Публикация события подтверждения через распределенную шину: {event.booking_id}"
-        )
-        DistributedEventPublisher.publish(event)
+        logger.info(f"📤 Публикация события подтверждения бронирования: {event.booking_id}")
 
-    # TODO: ОТРЕФАКТОРИТЬ ПО DDD CA
-    def _create_confirmation_event(self, confirmed_at: datetime):
-        """Создает событие подтверждения без импорта в основном потоке"""
-        from uuid import uuid4
-        from ...domain.events.booking_events import BookingConfirmedEvent
+        return [event]
 
-        return BookingConfirmedEvent(
-            event_id=uuid4(),
-            occurred_at=confirmed_at,
-            booking_id=self.id,
-            studio_id=self.studio_id,
-            client_id=self.client_id,
-            time_range_start=self.time_range.start_time,
-            time_range_end=self.time_range.end_time,
-        )
-
-    def cancel(self, cancelled_at: datetime):
-        """Отменяет бронирование."""
-        if self._status == BookingStatusesEnum.COMPLETED:
+    def mark_as_cancelled(
+        self, current_time: datetime, cancellation_reason: str | None = None
+    ) -> list[DomainEvent]:
+        """Помечает бронирование как отмененное и публикует событие."""
+        if not self.can_be_cancelled(current_time):
             raise BookingCannotBeCanceledError(
-                BookingCannotBeCanceledError.COMPLETED_BOOKING_MESSAGE
+                BookingCannotBeCanceledError.CANCELLED_BOOKING_MESSAGE, self._id
             )
-        self._status = BookingStatusesEnum.CANCELLED
-        self._cancelled_at = cancelled_at
 
-    def complete(self, completed_at: datetime):
+        self._status = BookingStatusesEnum.CANCELLED
+        self._cancelled_at = current_time
+
+        event = BookingCancelledEvent(
+            occurred_at=self._cancelled_at,
+            booking_id=self.id,
+            studio_id=self.studio_id,
+            client_id=self.client_id,
+            reason=cancellation_reason,
+        )
+
+        logger.info(f"📤 Публикация события отмены бронирования: {event.booking_id}")
+
+        return [event]
+
+    def mark_as_completed(self, current_time: datetime) -> list[DomainEvent]:
         """
-        Завершает бронирование.
+        Помечает бронирование как завершенное и публикует событие.
         Оно может быть завершено после того, как время бронирования закончилось.
         """
         if not self.can_be_completed:
             raise BookingCannotBeCompletedError()
         self._status = BookingStatusesEnum.COMPLETED
-        self._completed_at = completed_at
+        self._completed_at = current_time
 
-    def reschedule(self, new_time_range: BookingTimeRange, rescheduled_at: datetime):
+        event = BookingCompletedEvent(
+            occurred_at=self._completed_at,
+            booking_id=self.id,
+            studio_id=self.studio_id,
+            client_id=self.client_id,
+        )
+
+        logger.info(f"📤 Публикация события завершения бронирования: {event.booking_id}")
+
+        return [event]
+
+    def mark_as_rescheduled(
+        self, new_time_range: BookingTimeRange, current_time: datetime
+    ) -> list[DomainEvent]:
         """
-        Переносит бронирование. После переноса:
+        Помечает бронирование как перенесённое и публикует событие. После переноса:
         - Статус меняется на RESCHEDULED (требуется повторное подтверждение)
         - Увеличивается счётчик переносов
         """
         if not self.can_be_rescheduled:
             raise BookingCannotBeRescheduledError(
-                status=self.status,
+                status=self._status.value,
                 reschedule_count=self._reschedule_count,
-                limit=self.reschedule_limit,
+                limit=self.__BOOKING_RESCHEDULE_LIMIT,
             )
         self._time_range = new_time_range
-        self._rescheduled_at = rescheduled_at
         self._reschedule_count += 1
         self._status = BookingStatusesEnum.RESCHEDULED
+        self._rescheduled_at = current_time
+
+        event = BookingRescheduledEvent(
+            occurred_at=self._rescheduled_at,
+            booking_id=self.id,
+            studio_id=self.studio_id,
+            client_id=self.client_id,
+            time_range_start=self.time_range.start_time,
+            time_range_end=self.time_range.end_time,
+        )
+
+        logger.info(f"📤 Публикация события переноса бронирования: {event.booking_id}")
+
+        return [event]
 
     # endregion

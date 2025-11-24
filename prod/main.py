@@ -1,6 +1,14 @@
 import logging
 from .config.settings import settings
 
+from uuid import uuid4, UUID
+from datetime import datetime, timezone
+from .domain.bookings.booking import Booking
+from .domain.bookings.value_objects.booking_time_range_vo import BookingTimeRange
+from .domain.bookings.booking_enums import BookingServicesTypesEnum
+from .infrastructure.redis_client import RedisClient
+from .infrastructure.notifications.telegram_notifier import TelegramNotifier
+
 # Настройка логирования
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
@@ -8,10 +16,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-# Импорты после настройки логирования
-from .infrastructure.redis_client import RedisClient
-from .infrastructure.notifications.telegram_notifier import TelegramNotifier
 
 
 def init_notification_system():
@@ -44,12 +48,6 @@ def run_test():
     """Запуск теста подтверждения бронирования в текущем процессе"""
     logger.info("🧪 Запуск теста подтверждения бронирования...")
 
-    from uuid import uuid4, UUID
-    from datetime import datetime, timezone
-    from .domain.bookings.booking import Booking
-    from .domain.bookings.value_objects.booking_time_range_vo import BookingTimeRange
-    from .domain.bookings.booking_enums import BookingServicesTypesEnum
-
     TEST_CLIENT_ID = UUID("11111111-2222-3333-4444-555555555555")
 
     # Создание временного диапазона
@@ -63,7 +61,6 @@ def run_test():
         id=uuid4(),
         studio_id=uuid4(),
         client_id=TEST_CLIENT_ID,
-        payment_id=uuid4(),  # Заглушка
         assigned_employee_id=uuid4(),
         service_type=BookingServicesTypesEnum.MIXING,
         time_range=time_range,
@@ -74,7 +71,7 @@ def run_test():
     logger.info("🔧 Подтверждение бронирования...")
 
     # Подтверждение бронирования (событие будет отправлено в Celery)
-    booking.confirm(confirmed_at=datetime.now(timezone.utc))
+    booking_service.confirm(booking, confirmed_at=datetime.now(timezone.utc))
 
     logger.info("✅ Тест завершен успешно!")
 
